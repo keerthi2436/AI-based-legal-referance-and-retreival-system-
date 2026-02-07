@@ -1,148 +1,101 @@
-# ⚖️ AI-Based Legal Reference & Retrieval System
+# Hybrid Retrieval-Augmented Generation (RAG) for Legal Text Analytics
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=for-the-badge&logo=openai)
-![RAG](https://img.shields.io/badge/RAG-Hybrid%20Search-green?style=for-the-badge)
-
-A production-grade **Retrieval-Augmented Generation (RAG)** system designed to democratize access to legal knowledge. This application ingests legal documents (PDF/TXT), builds a **hybrid semantic-keyword index**, and delivers precise, cited answers to complex legal queries through a polished, professional interface.
+### Abstract
+This project implements a state-of-the-art **Retrieval-Augmented Generation (RAG)** pipeline tailored for the precision-critical domain of legal analytics. By fusing **dense vector retrieval** (semantic understanding) with **sparse TF-IDF retrieval** (exact keyword matching), the system overcomes the limitations of traditional search methods in handling complex statutory language. The architecture integrates **GPT-4o** for generation, ensuring high-fidelity, citation-backed responses suitable for legal professionals and researchers.
 
 ---
 
-## 🚀 Key Features
+## 🏛️ 1. System Architecture
 
-### 🧠 Advanced RAG Architecture
-- **Hybrid Search:** Combines **Semantic Search** (using `all-MiniLM-L6-v2`) with **TF-IDF Keyword Matching** to ensure both conceptual understanding and precise statutory retrieval.
-- **Smart Chunking:** Intelligently segments legal texts to preserve context.
-- **Dynamic Retrieval:** Auto-detects query intent to adjust search strategies.
+The proposed architecture adopts a **bi-encoder dual-path retrieval strategy**, optimized for high recall and precision.
 
-### 🛡️ Credible & Transparent AI
-- **Inline Citations:** Every claim is backed by a specific source document `[Source: IPC-Section-302.pdf]`.
-- **Hallucination Guardrails:** System prompts strictly forbid inventing case laws or statutes.
-- **Confidence Scoring:** The system assesses retrieval quality before generating an answer.
+![System Architecture](assets/architecture.png)
 
-### 🎨 Premium User Experience
-- **Multi-Mode Interface:**
-  - **Normal:** Standard Q&A.
-  - **Summary:** Concise, bulleted legal briefs.
-  - **ELI5:** "Explain Like I'm 5" - simplifies legal jargon for laypeople.
-  - **Quiz:** Generates multiple-choice questions for law students.
-  - **Drafting:** Auto-drafts legal clauses and contracts based on context.
-- **Theming Engine:** Switch between *Midnight Purple*, *Deep Ocean Blue*, *Emerald NeoGlass*, and more.
-- **Chat Export:** Download conversation history as formatted `.docx` files.
+### 1.1 Methodology
+The core retrieval mechanism, $S_{hybrid}$, combines semantic similarity scores ($S_{sem}$) and lexical overlap scores ($S_{lex}$) using a weighted linear combination:
+
+$$ S_{hybrid}(q, d) = \alpha \cdot S_{sem}(q, d) + (1 - \alpha) \cdot S_{lex}(q, d) $$
+
+Where:
+-   $S_{sem}(q, d)$: Cosine similarity between query embedding $\vec{v}_q$ and document embedding $\vec{v}_d$ (via `all-MiniLM-L6-v2`).
+-   $S_{lex}(q, d)$: TF-IDF similarity focusing on rare legal terminologies (e.g., *mens rea*, *res judicata*).
+-   $\alpha$: A tunable hyperparameter (default $\alpha=0.7$) balancing semantic nuance vs. keyword precision.
 
 ---
 
-## 🛠️ System Architecture
+## 🔬 2. Research Contributions
 
-```mermaid
-graph TD
-    A[User Legal Documents] -->|Upload PDF/TXT| B(Document Processor)
-    B -->|Clean & Chunk| C{Hybrid Indexer}
-    C -->|Embeddings| D[Vector Store (Local/FAISS)]
-    C -->|TF-IDF| E[Keyword Index]
-    
-    U[User Query] -->|Input| F(Query Engine)
-    F -->|Semantic Search| D
-    F -->|Keyword Match| E
-    
-    D & E -->|Top-K Context| G[Context Refiner]
-    G -->|Augmented Prompt| H[LLM (GPT-4o)]
-    H -->|Generated Answer| I[Streamlit Interface]
-```
+### 2.1 Hybrid Indexing Strategy
+Unlike standard vector-only RAG systems which often fail to retrieve exact statutory clauses (e.g., "Section 302 IPC"), our hybrid approach ensures:
+*   **Semantic Capture:** Understands intent (e.g., "What happens if I kill someone by mistake?" maps to *Culpable Homicide*).
+*   **Lexical Anchor:** Retrieves exact matches for case citations and section numbers.
+
+### 2.2 Hallucination Mitigation (Citation-Aware Generation)
+We enforce a strict **Evidence-Based Generation (EBG)** protocol. The LLM is constrained via system prompts to generate answers *only* from retrieved contexts $C = \{c_1, c_2, ..., c_k\}$.
+*   **Constraint:** If $Answer \notin C$, output "Insufficient Context".
+*   **Traceability:** Every assertion is suffixed with a unique source identifier $[Source\_ID]$.
 
 ---
 
-## 💻 Tech Stack
+## 🚀 3. Implementation Details
 
-- **Frontend:** Streamlit (Custom CSS for Glassmorphism/Animations)
-- **Backend Logic:** Python 3.9+
-- **LLM Integration:** OpenAI API (GPT-4o-mini / GPT-3.5-turbo)
-- **Vector Embeddings:** `sentence-transformers` (HuggingFace)
-- **Keyword Search:** `scikit-learn` (TF-IDF)
-- **PDF Processing:** `pypdf`
+### 3.1 Tech Stack
+| Component | Technology | Rationale |
+| :--- | :--- | :--- |
+| **LLM** | GPT-4o-mini | High reasoning capability with lower latency. |
+| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` | 384-dimensional dense vectors; SOTA for sentence similarity. |
+| **Vector Store** | In-Memory / FAISS | Low-latency approximate nearest neighbor (ANN) search. |
+| **Frontend** | Streamlit | Rapid prototyping of research interfaces. |
+
+### 3.2 Preprocessing Pipeline
+1.  **PDF Ingestion:** `pypdf` extracts raw text from diverse legal documents.
+2.  **Normalization:** Regex-based cleaning removes header/footer noise and corrects OCR errors.
+3.  **Semantic Chunking:** Text is segmented into 512-token overlapping windows to preserve local context.
 
 ---
 
-## ⚡ Quick Start (End-to-End)
-
-Follow these steps to get the system running locally in under 5 minutes.
+## ⚡ 4. Setup & Reproducibility
+(Follow these steps to replicate the experimental environment)
 
 ### Prerequisites
-- Python 3.8 or higher installed.
-- An OpenAI API Key.
+*   Python 3.9+ environment
+*   Access to OpenAI API
 
-### 1. Clone the Repository
+### Installation
 ```bash
-git clone https://github.com/Start-Springboard-Internship-2025/AI-Based-Legal-Retrieval-System.git
-cd AI-Based-Legal-Retrieval-System
-```
+# Clone the repository
+git clone https://github.com/keerthi2436/AI-based-legal-referance-and-retreival-system-
+cd AI-based-legal-referance-and-retreival-system-
 
-### 2. Set Up Virtual Environment
-```bash
-# Windows
-python -m venv .venv
-.venv\Scripts\activate
-
-# Mac/Linux
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install Dependencies
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 4. Configuration
-Create a `.env` file in the root directory:
+### Configuration
+Create a `.env` file for API credentials:
 ```bash
-# .env
-OPENAI_API_KEY=sk-your-openai-api-key-here
-OPENAI_MODEL=gpt-4o-mini  # Optional, defaults to gpt-4o-mini
+OPENAI_API_KEY=sk-proj-...
 ```
 
-### 5. Run the Application
+### Execution
 ```bash
 streamlit run app.py
 ```
 
 ---
 
-## 📖 Usage Guide
-
-1.  **Login:** Use the default demo credentials:
-    *   **Email:** `demo@legal.ai`
-    *   **Password:** `demo1234`
-2.  **Upload Documents:** Go to the sidebar, expand **Manage Documents**, and upload your legal PDFs (e.g., *Indian Penal Code*, *Contract Act*).
-3.  **Indexing:** The system will automatically process and index the files (Watch the "Index rebuilding..." toast).
-4.  **Ask Questions:** Type your query (e.g., *"What is the punishment for culpable homicide?"*).
-5.  **Explore Modes:** Switch to **ELI5** to understand complex laws simply, or **Quiz** to test your knowledge.
+## 📊 5. Future Research Directions
+*   **Cross-Encoder Re-ranking:** Implementing a BERT-based re-ranker to refine the top-k results from the bi-encoder stage.
+*   **LegalBERT Fine-tuning:** Replacing generic sentence transformers with domain-specific models pre-trained on Indian Case Law.
+*   **Graph RAG:** Utilizing Knowledge Graphs to map inter-statutory relationships.
 
 ---
 
-## 📂 Project Structure
-
-```
-├── app.py                 # Main Streamlit Application Entrypoint
-├── rag/
-│   ├── answer.py          # RAG Orchestrator & LLM Interaction
-│   ├── retriever.py       # Hybrid Search Implementation (Vector + Keyword)
-│   └── loader.py          # Document Ingestion & Chunking Logic
-├── data/                  # Local storage for docs, chunks, and user db
-├── .env                   # Environment variables (API Keys)
-└── requirements.txt       # Project Dependencies
-```
+## 📚 References
+1.  **Lewis et al. (2020).** Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. *NeurIPS*.
+2.  **Reimers & Gurevych (2019).** Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks. *EMNLP*.
+3.  **Chalkidis et al. (2020).** LEGAL-BERT: The Muppets straight out of Law School. *Findings of EMNLP*.
 
 ---
-
-## 🔮 Future Scope
-
-- **Fine-Tuned LLM:** Training a LLaMA-based model specifically on Indian Case Law for offline capabilities.
-- **Multilingual Support:** Integrating translation APIs to support queries in Hindi, Tamil, and other regional languages.
-- **Live Citation Verification:** Real-time checking of citations against external legitimate databases (manupatra, scconline).
-
----
-
-## 📄 License
-This project is licensed under the MIT License.
+**Author:** Keerthi  
+**Institution:** Springboard Internship 2025  
