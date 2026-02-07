@@ -1,3 +1,4 @@
+AI Based Legal Reference and Retrieval System
 # Hybrid Retrieval-Augmented Generation (RAG) for Legal Text Analytics
 
 ### Abstract
