@@ -1,0 +1,10 @@
+.venv/
+data/index.pkl
+data/users.db
+data/conversations/
+data/processed/
+data/raw/
+*.pyc
+__pycache__/
+.DS_Store
+.env 

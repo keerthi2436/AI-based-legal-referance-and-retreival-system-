@@ -1,0 +1,17 @@
+[
+  {
+    "email": "demo@legal.ai",
+    "name": "Demo User",
+    "password_hash": "0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d"
+  },
+  {
+    "email": "keerthimedha6@gmail.com",
+    "name": "keerthi",
+    "password_hash": "e9b284a61955c0a11444d30cd438aafea4d2ef42207b2543772ca37fb2c58121"
+  },
+  {
+    "email": "keerthi",
+    "name": "keerthi",
+    "password_hash": "e9b284a61955c0a11444d30cd438aafea4d2ef42207b2543772ca37fb2c58121"
+  }
+]

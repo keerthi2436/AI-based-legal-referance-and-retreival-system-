@@ -1,0 +1,14 @@
+flask
+werkzeug
+jinja2
+bcrypt
+streamlit
+openai
+scikit-learn
+pypdf
+python-dotenv
+sentence-transformers
+pandas
+python-docx
+markdown
+numpy
