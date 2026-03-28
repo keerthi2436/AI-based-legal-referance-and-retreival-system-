@@ -89,7 +89,7 @@ def upsert_user(user):
     users.append(user); users_save(users)
 
 def seed_demo_user():
-    if not os.path.exists(USERS_FP):
+    if not os.path.exists(USERS_FP) and os.getenv("ALLOW_DEMO_ACCOUNT") == "true":
         users_save([{"email":"demo@legal.ai","name":"Demo User","password_hash":sha256("demo1234")}])
 seed_demo_user()
 
@@ -452,6 +452,14 @@ def sidebar_ui():
             )
             if selected_mode != st.session_state.get("chat_mode"):
                 st.session_state["chat_mode"] = selected_mode
+                st.rerun()
+
+            st.divider()
+
+            st.markdown("### 🔑 API Key (BYOK)")
+            user_key = st.text_input("OpenAI API Key (Optional)", type="password", placeholder="sk-...", help="Provide your own key to pay for your own queries.", value=st.session_state.get("user_openai_key", ""))
+            if user_key != st.session_state.get("user_openai_key", ""):
+                st.session_state["user_openai_key"] = user_key
                 st.rerun()
 
             st.divider()
@@ -969,7 +977,8 @@ def chat_view():
         user_query = active["messages"][-1]["content"]
         try:
             mode = st.session_state.get("chat_mode", "Normal")
-            resp = answer_query(user_query, mode=mode)
+            user_key = st.session_state.get("user_openai_key")
+            resp = answer_query(user_query, mode=mode, user_api_key=user_key)
             
             if isinstance(resp, str):
                 reply = resp

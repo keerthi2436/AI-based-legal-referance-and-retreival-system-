@@ -1,7 +1,3 @@
-flask
-werkzeug
-jinja2
-bcrypt
 streamlit
 openai
 scikit-learn

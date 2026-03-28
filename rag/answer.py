@@ -245,12 +245,13 @@ SYSTEM_PROMPT_SUGGESTIONS = """You are a helpful assistant anticipating the user
 # --------------------
 # LLM call (supports old and new openai SDK)
 # --------------------
-def call_openai_chat_short(query: str, context_block: str, max_tokens: int = 512, use_context: bool = True, system_prompt_override: str = None) -> str:
+def call_openai_chat_short(query: str, context_block: str, max_tokens: int = 512, use_context: bool = True, system_prompt_override: str = None, user_api_key: str = None) -> str:
     """
     Call OpenAI to get a concise answer.
     - use_context=True -> include context_block in system message.
     - use_context=False -> call model zero-shot (no local doc context) with an adjusted system prompt.
     """
+    active_key = user_api_key or OPENAI_API_KEY
     if _openai_pkg is None:
         raise RuntimeError("openai package not installed")
 
@@ -299,7 +300,7 @@ def call_openai_chat_short(query: str, context_block: str, max_tokens: int = 512
         client = None
         if OpenAIClient is not None:
             try:
-                client = OpenAIClient(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else OpenAIClient()
+                client = OpenAIClient(api_key=active_key) if active_key else OpenAIClient()
             except Exception:
                 try:
                     client = OpenAIClient()
@@ -308,7 +309,7 @@ def call_openai_chat_short(query: str, context_block: str, max_tokens: int = 512
 
         if client is None and hasattr(_openai_pkg, "OpenAI"):
             try:
-                client = _openai_pkg.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else _openai_pkg.OpenAI()
+                client = _openai_pkg.OpenAI(api_key=active_key) if active_key else _openai_pkg.OpenAI()
             except Exception:
                 try:
                     client = _openai_pkg.OpenAI()
@@ -419,7 +420,7 @@ def test_openai_conn() -> (bool, str):
 # --------------------
 # Public API
 # --------------------
-def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None, use_llm: Optional[bool] = None, mode: str = "Normal") -> str:
+def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None, use_llm: Optional[bool] = None, mode: str = "Normal", user_api_key: str = None) -> str:
     """
     - query: user's question
     - top_k: number of retrieval results to fetch
@@ -428,8 +429,9 @@ def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None,
                None => default is determined by presence of OPENAI_API_KEY
     - mode: "Normal", "Summary", or "Quiz"
     """
+    active_key = user_api_key or OPENAI_API_KEY
     verbose_flag = RAG_VERBOSE if verbose is None else bool(verbose)
-    use_llm_flag = bool(use_llm) if use_llm is not None else bool(OPENAI_API_KEY)
+    use_llm_flag = bool(use_llm) if use_llm is not None else bool(active_key)
 
     q = (query or "").strip()
     if not q:
@@ -495,7 +497,7 @@ def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None,
         sys_p = SYSTEM_PROMPT_NORMAL
 
     # If LLM path requested and available
-    if use_llm_flag and OPENAI_API_KEY and _openai_pkg is not None:
+    if use_llm_flag and active_key and _openai_pkg is not None:
         try:
             # OPTIMIZATION: Combine Answer + Suggestions in one call to reduce latency
             # We append a special instruction to the system prompt or query
@@ -511,7 +513,7 @@ def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None,
             else:
                 q_for_llm = q
 
-            reply_text = call_openai_chat_short(q_for_llm, context_block, max_tokens=1024, use_context=use_context, system_prompt_override=sys_p)
+            reply_text = call_openai_chat_short(q_for_llm, context_block, max_tokens=1024, use_context=use_context, system_prompt_override=sys_p, user_api_key=active_key)
             
             suggestions = []
             final_content = reply_text
@@ -537,8 +539,8 @@ def answer_query(query: str, top_k: int = TOP_K, verbose: Optional[bool] = None,
         except Exception:
             logger.exception("OpenAI synth failed — falling back to local summary.")
 
-    if use_llm_flag and not OPENAI_API_KEY:
-        logger.warning("LLM was requested (use_llm=True) but OPENAI_API_KEY not set — using local fallback.")
+    if use_llm_flag and not active_key:
+        logger.warning("LLM was requested (use_llm=True) but active_key not set — using local fallback.")
 
     # Fallback: local concise summary
     concise = _local_concise_summary(retrieved, q, max_sentences=4)
